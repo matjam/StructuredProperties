@@ -37,7 +37,7 @@ BlockStart				= "{"
 BlockEnd				= "}"
 Newline					= [\n\r]
 Equals					= "="
-Identifier				= {Alpha}({Alpha}|{Decimal}|-|_|\.)*
+Identifier              = {Alpha}[a-zA-Z0-9\-_]*
 
 %state STRING
 
