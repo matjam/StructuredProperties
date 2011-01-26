@@ -1,0 +1,3 @@
+StructuredProperties is a class designed around the same general
+style as the java Properties class, intended to provide a simple
+configuration file format for Java programs.

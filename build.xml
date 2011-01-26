@@ -1,0 +1,42 @@
+<project name="StructuredProperties" default="compile" basedir=".">
+  <description>
+     Structured Properties File Classes
+  </description>
+
+  <property name="src" location="src"/>
+  <property name="build" location="build"/>
+  <property name="dist"  location="dist"/>
+  
+  <property name="java-cup-11a.jar" value="lib/java-cup-11a.jar" />
+
+  <target name="init">
+    <tstamp/>
+    <mkdir dir="${build}"/>
+  </target>
+
+  <path id="compile.classpath">
+    <pathelement location="${java-cup-11a.jar}"/>
+  </path>
+
+
+  <target name="compile" depends="init" description="compile the source " >
+    <exec executable="jflex">
+        <arg value="-d ${src}/net/stupendous/util --nobak structuredproperties.l" />
+    </exec>
+    <javac srcdir="${src}" destdir="${build}" includeantruntime="false">
+            <classpath refid="compile.classpath"/>
+    </javac>
+ </target>
+
+<!--
+  <target name="dist" depends="compile" description="generate the distribution" >
+    <mkdir dir="${dist}/lib"/>
+    <jar jarfile="${dist}/lib/simpleconfig-${DSTAMP}.jar" basedir="${build}"/>
+  </target>
+-->
+	
+  <target name="clean" description="clean up" >
+    <delete dir="${build}"/>
+    <delete dir="${dist}"/>
+  </target>
+</project>
