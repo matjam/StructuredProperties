@@ -419,7 +419,7 @@ public class StructuredProperties {
             }
             break;
         case 2:
-        	System.out.printf("%s = %s\n", args[1], c.getProperty(args[1], "NOT FOUND"));
+        	System.out.printf("%s = %s\n", args[1], c.getProperty("NOT FOUND", args[1]));
         }
         
         System.exit(0);
@@ -443,9 +443,9 @@ public class StructuredProperties {
      */
     
     public Object getProperty(String defaultValue, String key) {
-    	String args[] = key.split("\\.");
-
-    	return getProperty(defaultValue, args);
+    	String a[] = key.split("\\.");
+   	
+    	return getProperty(a);
     }
     
     /**
@@ -465,10 +465,11 @@ public class StructuredProperties {
      * @return HashMap, ArrayList, String
      */
     
-    public Object getProperty(String defaultValue, String... keyparts) {
+    public Object getProperty(String... keyparts) {
+    	
     	int i = 0;
     	boolean found = true;
-    	Object def = defaultValue;
+    	Object def = null;
     	
     	if (keyparts.length == 1)
     		return root.get(keyparts[0]);
@@ -479,11 +480,13 @@ public class StructuredProperties {
     	HashMap<?, ?> hmap = root;
  	
     	for (i = 0; i < keyparts.length - 1; i++) {
-    		if (hmap.get(keyparts[i]) instanceof HashMap<?, ?>)
+    		if (hmap.get(keyparts[i]) instanceof HashMap<?, ?>) {
     			hmap = (HashMap<?, ?>) hmap.get(keyparts[i]);
+    		}
     		else
     			found = false;
     	}
+    	
     	if (found)
     		def = hmap.get(keyparts[keyparts.length - 1]);
     	
