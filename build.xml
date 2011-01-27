@@ -21,13 +21,15 @@
     </jar>
   </target>
 
-  <target name="compile" depends="init" description="compile the source " >
+  <target name="jflex" depends="init" description="compile the jflex lexer " >
     <exec executable="jflex">
         <arg value="-d ${src}/net/stupendous/util --nobak structuredproperties.l" />
     </exec>
-    <javac srcdir="${src}" destdir="${build}" includeantruntime="false">
-    </javac>
  </target>
+
+  <target name="compile" depends="jflex" description="compile the source " >
+    <javac srcdir="${src}" destdir="${build}" includeantruntime="false" debug="true" debuglevel="lines,vars,source" />
+  </target>
 
 <!--
   <target name="dist" depends="compile" description="generate the distribution" >

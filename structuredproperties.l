@@ -18,56 +18,67 @@ import net.stupendous.util.StructuredPropertiesSymbol.Type;
 
 %{
   StringBuffer string = null;
-
   int line = 1;
 %}
 
-%eofval{
-    return new StructuredPropertiesSymbol(Type.EOF, null, line);
-%eofval}
+WS                  = [ \t\v\f]
+NL                  = \r|\n|\r\n
+EQ					= "="
+ID					= [a-z][a-zA-Z0-9\-_]*
+OB					= "{"
+CB					= "}"
+DQ					= "\""
 
-Whitespace              = [ \t\v\f]
-Decimal                 = [0-9]
-Integer                 = ([+|-]{0,1}{Decimal}+)
-Double                  = ([+|-]{0,1}{Decimal}+\.{Decimal}+)
-Alpha                   = [a-zA-Z]
-Comment                 = (#.*\n)
-BlockStart              = "{"
-BlockEnd                = "}"
-Newline                 = [\n\r]
-Equals                  = "="
-Identifier              = {Alpha}[a-zA-Z0-9\-_]*
-
-%state STRING
+%xstates QSTRING PSTRING PSTRING_WS PSTRING_WS_IGNORE VALUE
 
 %%
 
 <YYINITIAL> {
-  \"                                        { string = new StringBuffer(); yybegin(STRING); }
-
-  {Identifier}                              { return new StructuredPropertiesSymbol(Type.IDENTIFIER, yytext(), line); }
-  {Integer}                                 { return new StructuredPropertiesSymbol(Type.INTEGER, yytext(), line); }
-  {Double}                                  { return new StructuredPropertiesSymbol(Type.DOUBLE, yytext(), line); }
-  {BlockStart}                              { return new StructuredPropertiesSymbol(Type.BLOCK_START, yytext(), line); }
-  {BlockEnd}                                { return new StructuredPropertiesSymbol(Type.BLOCK_END, yytext(), line); }
-  {Equals}                                  { return new StructuredPropertiesSymbol(Type.EQUALS, yytext(), line); }
-  {Comment}                                 { line++; /* Eat Comments */ }
-  {Whitespace}                              { /* Eat WhiteSpace */ }
-  {Newline}                                 { line++; /* Eat but count new lines */ }
+	{WS}									{ /* YYINITIAL: Eat Whitespace */ }
+	{NL}									{ /* YYINITIAL: Eat Newline */ line++; }
+	#.*{NL}									{ /* YYINITIAL: Eat Comment */ line++; }
+	{CB}									{ /* YYINITIAL: Close Brace */ return new StructuredPropertiesSymbol(Type.BLOCK_END, yytext(), line); }
+	{ID}									{ /* YYINITIAL: ID String */   return new StructuredPropertiesSymbol(Type.STRING, yytext(), line); }
+	{DQ}									{ /* Block: Double quote */ string = new StringBuffer(); yybegin(QSTRING); }
+	{EQ}									{ /* YYINITIAL: Equals sign */ yybegin(VALUE); return new StructuredPropertiesSymbol(Type.EQUALS, yytext(), line); }
+	{OB}									{ /* Block: Open Brace */ return new StructuredPropertiesSymbol(Type.BLOCK_START, yytext(), line); }
 }
 
-<STRING> {
-  \"{Whitespace}*\\{Whitespace}*{Newline}+{Whitespace}*\"   { line++; /* Continuation onto another line */ }
-  [^\n\r\"\\]+                              { string.append( yytext() ); }
-  \"                                        { yybegin(YYINITIAL); return new StructuredPropertiesSymbol(Type.STRING, new String(string), line); }
-  \\t                                       { string.append('\t'); }
-  \\n                                       { string.append('\n'); }
-  \\r                                       { string.append('\r'); }
-  \\f                                       { string.append('\f'); }
-  \\\"                                      { string.append('\"'); }
-  \\                                        { string.append('\\'); }
+<VALUE> {
+	{WS}									{ /* Block: Eat Whitespace */ }
+	{DQ}									{ /* Block: Double quote */ string = new StringBuffer(); yybegin(QSTRING); }
+	{OB}									{ /* Block: Open Brace */ yybegin(YYINITIAL); return new StructuredPropertiesSymbol(Type.BLOCK_START, yytext(), line); }
+	[^ \t\v\f]								{ /* Block: Non-whitespace */ string = new StringBuffer(); string.append(yytext()); yybegin(PSTRING); }
 }
 
-/* error fallback */
-.|\n                             { throw new Error(String.format("Parse error on line: Illegal character %s", line , yytext())); }
+<PSTRING> {
+	{CB}									{ yypushback(1); yybegin(YYINITIAL); 
+											  /* There must be a better way than this. */
+											  return new StructuredPropertiesSymbol(Type.STRING, string.toString().replaceAll("\\s+$", ""), line); }
+	#.*{NL}									{ line++; yybegin(YYINITIAL); 
+											  /* There must be a better way than this. */
+											  return new StructuredPropertiesSymbol(Type.STRING, string.toString().replaceAll("\\s+$", ""), line); }
+	{NL}									{ line++; yybegin(YYINITIAL); 
+											  /* There must be a better way than this. */
+											  return new StructuredPropertiesSymbol(Type.STRING, string.toString().replaceAll("\\s+$", ""), line); }
+	\\{WS}*#.*{NL}							{ line++; yybegin(PSTRING_WS_IGNORE); }
+	\\{WS}*{NL}								{ line++; yybegin(PSTRING_WS_IGNORE); }
+	[^\n\r\\#}]+							{ string.append( yytext() ); }
+}
+
+
+<PSTRING_WS_IGNORE> {
+	{WS}									{ /* Eat */}
+	.										{ string.append(yytext()); yybegin(PSTRING); /* back to parsing the string */ }
+}
+
+<QSTRING> {
+  	{DQ} 									{ yybegin(YYINITIAL); return new StructuredPropertiesSymbol(Type.STRING, string.toString(), line); }
+  	[^\n\r\"\\]+							{ string.append( yytext() ); }
+  	\\t        			                    { string.append('\t'); }
+  	\\n               						{ string.append('\n'); }
+  	\\r                            			{ string.append('\r'); }
+  	\\\"                           			{ string.append('\"'); }
+  	\\                             			{ string.append('\\'); }
+}
 

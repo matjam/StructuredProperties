@@ -2,11 +2,7 @@ package net.stupendous.util;
 
 public class StructuredPropertiesSymbol {
     public enum Type {
-        IDENTIFIER,
         STRING,
-        INTEGER,
-        DOUBLE,
-        NUMBER,
         BLOCK_START,
         BLOCK_END,
         EQUALS,
@@ -16,11 +12,11 @@ public class StructuredPropertiesSymbol {
     }
 
     public Type type = Type.UNSET;
-    public Object object = null;
+    public String object = null;
     
     int line = 0;
 
-    public StructuredPropertiesSymbol(Type type, Object object, int line) {
+    public StructuredPropertiesSymbol(Type type, String object, int line) {
         this.type = type;
         this.object = object;
         this.line = line;

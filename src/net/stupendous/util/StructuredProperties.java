@@ -309,11 +309,27 @@ public class StructuredProperties {
     }
     
     private void nextSymbol() throws Error {
+    	if (currentSymbolIndex + 1 == symbols.size())
+    		throw new Error("Unexpected EOF in configuration. Is the configuration file complete?");
+    	
         currentSymbolIndex++;
         currentSymbol = symbols.get(currentSymbolIndex);
         
         if (debugging)
         	System.out.printf("%s :: %d : advanced Symbol to: %s\n",
+        			Thread.currentThread().getStackTrace()[2].getMethodName(),
+        			Thread.currentThread().getStackTrace()[2].getLineNumber(),
+        			currentSymbol.toString());
+    }
+
+    private void prevSymbol() throws Error {
+    	assert(currentSymbolIndex > 0);
+    	
+        currentSymbolIndex--;
+        currentSymbol = symbols.get(currentSymbolIndex);
+        
+        if (debugging)
+        	System.out.printf("%s :: %d : rewound Symbol to: %s\n",
         			Thread.currentThread().getStackTrace()[2].getMethodName(),
         			Thread.currentThread().getStackTrace()[2].getLineNumber(),
         			currentSymbol.toString());
@@ -327,7 +343,7 @@ public class StructuredProperties {
             isRoot = true;
 
         /* Iterate until we get to the end of the defined block */
-        while (currentSymbol.type == Type.IDENTIFIER) {
+        while (currentSymbol.type == Type.STRING) {
             SimpleEntry<String, Object> entry = parseKeyValue();
             map.put(entry.getKey(), entry.getValue());
         }
@@ -337,7 +353,7 @@ public class StructuredProperties {
         	if (isRoot)
         		return map;
         	
-        	throw expectedError(String.format("%s or %s", Type.IDENTIFIER, Type.BLOCK_END));
+        	throw expectedError(String.format("%s or %s", Type.STRING, Type.BLOCK_END));
         case BLOCK_END:
         	return map;
         default:
@@ -348,11 +364,11 @@ public class StructuredProperties {
     private SimpleEntry<String, Object> parseKeyValue() throws Error {
         SimpleEntry<String, Object> entry;
 
-        if (currentSymbol.type != Type.IDENTIFIER)
-            expectedError(Type.IDENTIFIER.toString());
+        if (currentSymbol.type != Type.STRING)
+            expectedError(Type.STRING.toString());
         
-        /* Nasty little cast here, but we know Identifiers are Strings */
-        entry = new SimpleEntry<String, Object>((String) currentSymbol.object, "");
+        /* Nasty little cast here, but we're not using that object at all. */
+        entry = new SimpleEntry<String, Object>(currentSymbol.object, (Object) null);
         
         nextSymbol();
         
@@ -365,24 +381,18 @@ public class StructuredProperties {
             
             switch (currentSymbol.type) {
             case STRING:
-            case INTEGER:
-            case DOUBLE:
                 entry.setValue(currentSymbol.object);
                 nextSymbol();
                 return entry;
+            case BLOCK_START:
+                entry.setValue(parseBlock());
+                return entry;
             default:
-                throw expectedError(
-                        String.format(
-                                "%s, %s, %s (or IDENTIFIER { BLOCK })",
-                                Type.STRING.toString(),
-                                Type.INTEGER.toString(),
-                                Type.DOUBLE.toString()
-                            )
-                        );
+                throw expectedError(String.format(Type.STRING.toString()));
             }
         	
        	default:
-       		throw  expectedError(String.format("%s [(] or %s [=]", Type.BLOCK_START.toString(), Type.EQUALS.toString()));
+       		throw  expectedError(String.format("%s [{] or %s [=]", Type.BLOCK_START.toString(), Type.EQUALS.toString()));
         }
     }
 
@@ -392,8 +402,6 @@ public class StructuredProperties {
         while (currentSymbol.type != Type.BLOCK_END) {
             switch (currentSymbol.type) {
             case STRING:
-            case INTEGER:
-            case DOUBLE:
                 list.add(currentSymbol.object);
                 nextSymbol();
                 break;
@@ -403,10 +411,8 @@ public class StructuredProperties {
             default:
                 throw expectedError(
                         String.format(
-                                "%s, %s, %s or %s",
+                                "%s, or %s",
                                 Type.STRING.toString(),
-                                Type.INTEGER.toString(),
-                                Type.DOUBLE.toString(),
                                 Type.BLOCK_END.toString()
                             )
                         );
@@ -431,26 +437,42 @@ public class StructuredProperties {
     	nextSymbol();
     	
     	switch (currentSymbol.type) {
-        case IDENTIFIER:
-            /* Its a HashMap */
-        	HashMap<String, Object> map = parseHashMap();
-        	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
-        	nextSymbol();
-            return map;
-        case STRING:
-        case INTEGER:
-        case DOUBLE:
-            /* Must be an ArrayList */
-        	ArrayList<Object> l1 = parseArrayList();
-        	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
-        	nextSymbol();
-        	return l1;
+    	case STRING:
+    		/* Its either a hashmap or an arraylist. The only way to know for
+    		 * sure is to advance the token an extra step then rewind when we're
+    		 * done.
+    		 */
+    		nextSymbol();
+    		switch(currentSymbol.type) {
+    		case STRING:
+                /* Must be an ArrayList */
+    			prevSymbol();
+            	ArrayList<Object> l1 = parseArrayList();
+            	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
+            	nextSymbol();
+            	return l1;
+    		case BLOCK_START:
+    		case EQUALS:
+                /* Its a HashMap */
+    			prevSymbol();
+            	HashMap<String, Object> map = parseHashMap();
+            	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
+            	nextSymbol();
+                return map;
+            default:
+            	throw expectedError(String.format(
+                            "%s, %s or %s",
+                            Type.STRING.toString(),
+                            Type.BLOCK_START.toString(),
+                            Type.EQUALS.toString()
+                        ));
+    		}
         case BLOCK_END:
             /* There is no way to know what it could be, return null. */
         	nextSymbol();
             return null;
         case BLOCK_START:
-            /* A block instead of the identifier means this is an array. */
+            /* A block instead of a string means this is an array. */
         	ArrayList<Object> l2 = parseArrayList();
         	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
         	nextSymbol();
@@ -458,11 +480,8 @@ public class StructuredProperties {
         default:
             throw expectedError(
                     String.format(
-                            "%s, %s, %s, %s, %s or %s",
-                            Type.IDENTIFIER.toString(),
+                            "%s, %s or %s",
                             Type.STRING.toString(),
-                            Type.INTEGER.toString(),
-                            Type.DOUBLE.toString(),
                             Type.BLOCK_START.toString(),
                             Type.BLOCK_END.toString()
                         )
