@@ -6,6 +6,7 @@ public class StructuredPropertiesSymbol {
         STRING,
         INTEGER,
         DOUBLE,
+        NUMBER,
         BLOCK_START,
         BLOCK_END,
         EQUALS,

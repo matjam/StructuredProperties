@@ -77,9 +77,13 @@ public class StructuredProperties {
         StructuredProperties c = new StructuredProperties(f);
         
         System.out.println("Completed parse.");
-        
-        System.out.println(c.getRoot().toString());
 
+        System.out.println("Parsed map:\n");
+        
+        for (String key : c.getRoot().keySet()) {
+        	System.out.println(key + " = " + c.getRoot().get(key));
+        }
+        
         System.exit(0);
     }
 
@@ -120,12 +124,14 @@ public class StructuredProperties {
         
             while (symbol != null && symbol.type != Type.EOF) {
             	if (debugging) 
-            		System.out.printf(" %s\n", symbol.toString());
+            		System.out.printf(" %d %s\n", symbols.size(), symbol.toString());
 
             	
             	symbols.add(symbol);
                 symbol = lexer.scan();
             }
+            
+            symbols.add(new StructuredPropertiesSymbol(Type.EOF, null, 0));
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -134,8 +140,6 @@ public class StructuredProperties {
             System.out.println("Finished lexing the file.");
             System.out.println("Size of symbol array: " + symbols.size());
         }
-        
-        
         
         if (symbols.size() == 0)
             throw new Error("Empty configuration.");
@@ -153,6 +157,17 @@ public class StructuredProperties {
     private void nextSymbol() throws Error {
         currentSymbolIndex++;
         currentSymbol = symbols.get(currentSymbolIndex);
+        
+        if (debugging)
+        	System.out.printf("%s :: %d : advanced Symbol to: %s\n",
+        			Thread.currentThread().getStackTrace()[2].getMethodName(),
+        			Thread.currentThread().getStackTrace()[2].getLineNumber(),
+        			currentSymbol.toString());
+    }
+
+    private void prevSymbol() throws Error {
+        currentSymbolIndex--;
+        currentSymbol = symbols.get(currentSymbolIndex);
     }
 
     private HashMap<String, Object> parseHashMap() throws Error {
@@ -166,24 +181,19 @@ public class StructuredProperties {
         while (currentSymbol.type == Type.IDENTIFIER) {
             SimpleEntry<String, Object> entry = parseKeyValue();
             map.put(entry.getKey(), entry.getValue());
-            
-            nextSymbol();
         }
         
-        if (isRoot && currentSymbol.type == Type.EOF) {
-            /* We expect to hit EOF if we're parsing the root map */
-            return map;
+        switch (currentSymbol.type) {
+        case EOF:
+        	if (isRoot)
+        		return map;
+        	
+        	throw expectedError(String.format("%s or %s", Type.IDENTIFIER, Type.BLOCK_END));
+        case BLOCK_END:
+        	return map;
+        default:
+        	throw expectedError(Type.BLOCK_END.toString());
         }
-        
-        if (currentSymbol.type != Type.BLOCK_END) {
-            /* The only thing that should end a hashmap is a curly brace. */
-            
-            expectedError(Type.BLOCK_END.toString());
-        }
-        
-        nextSymbol();
-        
-        return map;
     }
 
     private SimpleEntry<String, Object> parseKeyValue() throws Error {
@@ -197,44 +207,48 @@ public class StructuredProperties {
         
         nextSymbol();
         
-        /* Blocks don't need to have an = after the identifier */
-        
-        if (currentSymbol.type == Type.BLOCK_START) {
-            nextSymbol();
+        switch (currentSymbol.type) {
+        case BLOCK_START:
             entry.setValue(parseBlock());
             return entry;
+        case EQUALS:
+            nextSymbol();
+            
+            switch (currentSymbol.type) {
+            case STRING:
+            case INTEGER:
+            case DOUBLE:
+                entry.setValue(currentSymbol.object);
+                nextSymbol();
+                return entry;
+            default:
+                throw expectedError(
+                        String.format(
+                                "%s, %s, %s (or IDENTIFIER { BLOCK })",
+                                Type.STRING.toString(),
+                                Type.INTEGER.toString(),
+                                Type.DOUBLE.toString()
+                            )
+                        );
+            }
+        	
+       	default:
+       		throw  expectedError(String.format("%s [(] or %s [=]", Type.BLOCK_START.toString(), Type.EQUALS.toString()));
         }
-        
-        /* It's not a block, so it must have an = after it */
-        
-        if (currentSymbol.type != Type.EQUALS)
-            expectedError(String.format("%s (=)", Type.EQUALS.toString()));
-        
-        nextSymbol();
-        
-        switch (currentSymbol.type) {
-        case STRING:
-        case INTEGER:
-        case DOUBLE:
-            entry.setValue(parseValue());
-        }
-        
-        
-        return entry;
     }
 
     private ArrayList<Object> parseArrayList() throws Error {
         ArrayList<Object> list = new ArrayList<Object>();
-        
+
         while (currentSymbol.type != Type.BLOCK_END) {
             switch (currentSymbol.type) {
             case STRING:
             case INTEGER:
             case DOUBLE:
                 list.add(currentSymbol.object);
+                nextSymbol();
                 break;
             case BLOCK_START:
-                nextSymbol();
                 list.add(parseBlock());
                 break;
             default:
@@ -248,29 +262,50 @@ public class StructuredProperties {
                             )
                         );
             }
-            nextSymbol();
         }
         
-        return null;
+        return list;
     }
 
     private Object parseBlock() throws Error {
-        switch (currentSymbol.type) {
+    	
+    	/* Parses a block from { ..... }
+    	 * 
+    	 * The idea is that we are given the currentSymbol pointing to 
+    	 * the open brace, and we eat tokens until we reach the close
+    	 * brace.
+    	 *  
+    	 */
+    	
+    	assert (currentSymbol.type == Type.BLOCK_START) : Type.BLOCK_START;
+    	
+    	nextSymbol();
+    	
+    	switch (currentSymbol.type) {
         case IDENTIFIER:
             /* Its a HashMap */
-            return parseHashMap();
+        	HashMap<String, Object> map = parseHashMap();
+        	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
+        	nextSymbol();
+            return map;
         case STRING:
         case INTEGER:
         case DOUBLE:
             /* Must be an ArrayList */
-            return parseArrayList();
+        	ArrayList<Object> l1 = parseArrayList();
+        	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
+        	nextSymbol();
+        	return l1;
         case BLOCK_END:
             /* There is no way to know what it could be, return null. */
+        	nextSymbol();
             return null;
         case BLOCK_START:
-            /* Nested blocks? Ok, we can handle that. */
-            nextSymbol();
-            return parseBlock();
+            /* A block instead of the identifier means this is an array. */
+        	ArrayList<Object> l2 = parseArrayList();
+        	assert (currentSymbol.type == Type.BLOCK_END) : Type.BLOCK_END;
+        	nextSymbol();
+        	return l2;
         default:
             throw expectedError(
                     String.format(
@@ -281,29 +316,6 @@ public class StructuredProperties {
                             Type.DOUBLE.toString(),
                             Type.BLOCK_START.toString(),
                             Type.BLOCK_END.toString()
-                        )
-                    );
-        }
-    }
-    
-    
-    private Object parseValue() throws Error {
-        switch (currentSymbol.type) {
-        case STRING:
-        case INTEGER:
-        case DOUBLE:
-            return currentSymbol.object;
-        case BLOCK_START:
-            nextSymbol();
-            return parseBlock();
-        default:
-            throw expectedError(
-                    String.format(
-                            "%s, %s, %s or %s",
-                            Type.STRING.toString(),
-                            Type.INTEGER.toString(),
-                            Type.DOUBLE.toString(),
-                            Type.BLOCK_START.toString()
                         )
                     );
         }
