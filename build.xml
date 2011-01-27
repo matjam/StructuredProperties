@@ -38,5 +38,6 @@
   <target name="clean" description="clean up" >
     <delete dir="${build}"/>
     <delete dir="${dist}"/>
+    <delete file="${src}/net/stupendous/util/StructuredPropertiesLexer.java"/>
   </target>
 </project>

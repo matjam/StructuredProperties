@@ -9,6 +9,9 @@
 # maven
 /target
 
+# Generated files
+/src/net/stupendous/util/StructuredPropertiesLexer.java
+
 # vim
 .*.sw[a-p]
 
