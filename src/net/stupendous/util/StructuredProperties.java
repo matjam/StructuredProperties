@@ -53,9 +53,22 @@ public class StructuredProperties {
     private int currentSymbolIndex                          = 0;
     private StructuredPropertiesSymbol currentSymbol        = null;
 
+    private static void usage(String [ ] args) {
+    	String usageString = 
+    		"\nUsage: structuredproperties <fiename>\n" +
+    		"\n" +
+    		"This program will parse a Structured Properties Configuration file\n" +
+    		"and then perform a toString() on the root HashMap, outputting the\n" +
+    		"parsed configuration to stdout.\n";
+    	
+    	System.out.println(usageString);
+    }
+    
     public static void main(String [ ] args) {
-        if (args.length == 0)
-            System.err.println("args: <filename>");
+        if (args.length == 0) {
+        	usage(args);        	
+            System.exit(1);
+        }
         
         File f = new File(args[0]);
        
@@ -67,6 +80,7 @@ public class StructuredProperties {
         
         System.out.println(c.getRoot().toString());
 
+        System.exit(0);
     }
 
     public StructuredProperties (File configFile) throws Error {
@@ -98,15 +112,19 @@ public class StructuredProperties {
     private void parse() throws Error {
         StructuredPropertiesSymbol symbol;
 
+        if (debugging)
+        	System.out.println("Scanner debugging:");
+        
         try {
             symbol = lexer.scan();
         
             while (symbol != null && symbol.type != Type.EOF) {
-                symbols.add(symbol);
+            	if (debugging) 
+            		System.out.printf(" %s\n", symbol.toString());
+
+            	
+            	symbols.add(symbol);
                 symbol = lexer.scan();
-                
-                if (debugging)
-                    System.out.println(symbol.type.toString());
             }
         } catch (IOException e) {
             e.printStackTrace();

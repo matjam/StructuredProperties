@@ -24,4 +24,8 @@ public class StructuredPropertiesSymbol {
         this.object = object;
         this.line = line;
     }
+    
+    public String toString() {
+    	return String.format("%d : %s (%s) ", line, type.toString(), object);
+    }
 }

@@ -1,30 +1,31 @@
-<project name="StructuredProperties" default="compile" basedir=".">
+<project name="StructuredProperties" default="jar" basedir=".">
   <description>
      Structured Properties File Classes
   </description>
 
   <property name="src" location="src"/>
-  <property name="build" location="build"/>
+  <property name="build" location="build/classes"/>
   <property name="dist"  location="dist"/>
-  
-  <property name="java-cup-11a.jar" value="lib/java-cup-11a.jar" />
 
   <target name="init">
     <tstamp/>
-    <mkdir dir="${build}"/>
+    <mkdir dir="${build}/classes"/>
+    <mkdir dir="${dist}"/>
   </target>
 
-  <path id="compile.classpath">
-    <pathelement location="${java-cup-11a.jar}"/>
-  </path>
-
+  <target name="jar" depends="compile">
+    <jar destfile="${dist}/StructuredProperties-1.0.jar" basedir="build/classes">
+      <manifest>
+        <attribute name="Main-Class" value="net.stupendous.util.StructuredProperties"/>
+      </manifest>
+    </jar>
+  </target>
 
   <target name="compile" depends="init" description="compile the source " >
     <exec executable="jflex">
         <arg value="-d ${src}/net/stupendous/util --nobak structuredproperties.l" />
     </exec>
     <javac srcdir="${src}" destdir="${build}" includeantruntime="false">
-            <classpath refid="compile.classpath"/>
     </javac>
  </target>
 

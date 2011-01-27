@@ -17,7 +17,7 @@ import net.stupendous.util.StructuredPropertiesSymbol.Type;
 %type StructuredPropertiesSymbol
 
 %{
-  StringBuffer string = new StringBuffer();
+  StringBuffer string = null;
 
   int line = 1;
 %}
@@ -43,7 +43,7 @@ Identifier              = {Alpha}[a-zA-Z0-9\-_]*
 %%
 
 <YYINITIAL> {
-  \"                                        { string.setLength(0); yybegin(STRING); }
+  \"                                        { string = new StringBuffer(); yybegin(STRING); }
 
   {Identifier}                              { return new StructuredPropertiesSymbol(Type.IDENTIFIER, yytext(), line); }
   {Integer}                                 { return new StructuredPropertiesSymbol(Type.INTEGER, yytext(), line); }
@@ -59,7 +59,7 @@ Identifier              = {Alpha}[a-zA-Z0-9\-_]*
 <STRING> {
   \"{Whitespace}*\\{Whitespace}*{Newline}+{Whitespace}*\"   { line++; /* Continuation onto another line */ }
   [^\n\r\"\\]+                              { string.append( yytext() ); }
-  \"                                        { yybegin(YYINITIAL); return new StructuredPropertiesSymbol(Type.STRING, yytext(), line); }
+  \"                                        { yybegin(YYINITIAL); return new StructuredPropertiesSymbol(Type.STRING, new String(string), line); }
   \\t                                       { string.append('\t'); }
   \\n                                       { string.append('\n'); }
   \\r                                       { string.append('\r'); }
