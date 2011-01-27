@@ -1,4 +1,4 @@
-StructuredProperties Configuration Parser
+StructuredProperties Configuration File Format and Parser
 
 StructuredProperties is a parser designed around the same general
 style as the java Properties class, intended to provide a simple
@@ -11,16 +11,16 @@ To build StructuredProperties, you will need a recent JDK and the
 JFlex tool from http://jflex.de/ installed in your system path as
 "jflex", along with Apache Ant for building.
 
-No documentation for the API is ready yet, however JavaDoc
-documents are on the way. The basic usage is simple, however, just
-create yourself a new File object to represent your configuration
-file, and pass it to the StructuredProperties constructor. use
-StructuredProperties.getRoot() to get the root hashmap, at which
-point you can read entries as you normally would.
+JavaDoc pages have been generated along with a complete explanation
+of the syntax (in case it isn't obvious) at
 
-The API will eventually provide a getEntry method which will allow
-you to specify the path to an item using "root.subpart.subpart.item"
-but that is currently not implemented.
+    http://matjam.github.com/StructuredProperties/
+
+The basic usage is simple however, just create yourself a new File 
+object to represent your configuration file, and pass it to the 
+StructuredProperties constructor. use StructuredProperties.getRoot()
+to get the root hashmap, at which point you can read entries as you 
+normally would.
 
 Example:
 
@@ -28,3 +28,18 @@ Example:
     StructuredProperties c = new StructuredProperties(f);
     System.out.println(c.getRoot().toString());
 
+Alternatively, you can use the getProperty(String default, String path)
+method, which will get a property at a given path, separated by '.'.
+
+    String v = getProperty("UNSET", "options.server-ip");
+
+This of course relies on you not using period in the key of any of
+your HashMaps, if that is the case, you can use the other form of
+getProperty():
+
+    String v = getProperty("UNSET", "options", "server.ip");
+
+Please note that I'm not a Java programmer by trade; I've spent more time
+with C by now than anything else, so if any part of the implementation
+is not correct or needs work, I'd be happy to take any pull requests
+that fix them.
