@@ -15,7 +15,6 @@ import net.stupendous.util.StructuredPropertiesSymbol.Type;
 %unicode
 %function scan
 %type StructuredPropertiesSymbol
-%standalone
 
 %{
   StringBuffer string = new StringBuffer();
