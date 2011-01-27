@@ -87,6 +87,19 @@ public class StructuredProperties {
         System.exit(0);
     }
 
+    /**
+     * Returns a given 
+     * @param key
+     * @param defaultValue
+     * @return
+     */
+    
+    public Object getProperty(String key, Object defaultValue) {
+    	Object o = null;
+    	
+    	return o;
+    }
+    
     public StructuredProperties (File configFile) throws Error {
         InputStream in;
         
@@ -163,11 +176,6 @@ public class StructuredProperties {
         			Thread.currentThread().getStackTrace()[2].getMethodName(),
         			Thread.currentThread().getStackTrace()[2].getLineNumber(),
         			currentSymbol.toString());
-    }
-
-    private void prevSymbol() throws Error {
-        currentSymbolIndex--;
-        currentSymbol = symbols.get(currentSymbolIndex);
     }
 
     private HashMap<String, Object> parseHashMap() throws Error {
