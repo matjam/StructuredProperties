@@ -1,5 +1,5 @@
 /*  
-    SimpleConf
+    StructuredProperties
 
     Simple human readable and editable configuration file format.
 */

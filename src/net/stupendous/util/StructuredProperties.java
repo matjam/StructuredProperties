@@ -106,33 +106,187 @@ import net.stupendous.util.StructuredPropertiesSymbol.Type;
  * }
  * </pre>
  * <p>
- * Yes, we don't use strings for keys so we can't use arbitrary non-ascii stuff
- * as a key. This is a feature! This is a configuration file, not a data exchange
- * format. Also, we can't represent "null", for the same reason.
+ * Note that the keys are not required to be quoted. If you need an exotic key, you
+ * just surround it with double quotes. All values are strings; its up to you to
+ * convert them when you read them into whatever objects you need.
  * <p>
- * Whitespace separates key/value pairs, as there is no need for anything to separate
- * values. Likewise we could have chosen not to have an "=" between the key and value
+ * Whitespace separates items, as there is no need for anything to separate
+ * them. Likewise I could have chosen not to have an "=" between the key and value
  * but it was decided that it would be nice to have some kind of visual similarity
  * to Java Properties files.
  * <p>
  * If you want a good data exchange format, look at JSON or YAML or XML. Thats
- * what they are designed to do really well. Editing streams of these formats by
- * hand is possible, sure, but it's just a byproduct of their goals. It's not a
- * core goal.
+ * what they are designed to do really well. Editing files in these formats by
+ * hand is possible, sure, but it's just a byproduct of their goals. It's not goal
+ * of any of these languages to be used as configuration files, nor is it their goal
+ * to be easily edited by humans.
  * <p>
  * The core goals of StructuredProperties is to be
  * <p>
- *   <li>Easily readable</li>
- *   <li>Easily understandable</li>
- *   <li>Easily editable</li>
+ *   <li>Easily readable by humans</li>
+ *   <li>Easily understandable by humans</li>
+ *   <li>Easily editable by humans</li>
  * <p>
  * Note that one of the core goals is not "to be able to represent every possible
  * data type in existence". This is because there are many languages out there
  * already that do a far better job at doing that. My suggestion is that if you
  * have a requirement for a configuration file that stores some exotic data, that
- * you store the exotic data in XML or JSON files, and put the configuration
- * in a configuration file.
+ * you store the exotic data in XML or JSON files with the rest of your configuration
+ * in a Structured Properties configuration file.
  * <p>
+ * <b>Structured Properties Grammar</b><p>
+ * <p>
+ * A Structured Properties Configuration file (*.conf) is a simple human
+ * readable and human editible configuration file format with a syntax 
+ * that can be understood easily by anyone by just looking at the file.
+ *<p>
+ * Because conf files only support primitive types, the syntax can be kept
+ * clean, and syntax errors in the configuration file can be kept to a
+ * minimum. If you need more complex types, those objects probably should
+ * belong in other serialization formats, and they probably are not required
+ * to be human editable.
+ *<p>
+ * This example file contains a detailed explanation of the syntax of this
+ * file, but the structure and usage of a Structured Properties file
+ * is intended to be natural and easy to pick up without reading
+ * documentation.
+ *<p>
+ * <b>COMMENT</b>
+ *<p>
+ *   # This is a comment. The only way to start a comment is with #, C-style 
+ *   comments are not supported.
+ *<p>
+ *   Comments may be anywhere you like and are ignored until end of line.
+ *<p>
+ * <b>WHITESPACE</b>
+ *<p>
+ *   Whitespace is unimportant to the lexer and parser.
+ *<p>
+ *   There is no particular level of indentation required nor does indentation
+ *   affect the parser in any way.
+ *<p>
+ *   The only explicit exception to this is when you use unquoted strings,
+ *   explained below.
+ *<p>
+ *   Whitespace is defined as being a space ' ', a tab '\t' or a line ending
+ *   character '\r' & '\n'. Vertical tab '\v' and line feed '\f' are also
+ *   treated as whitespace, but you should avoid using them anyway.
+ *<p>
+ * <b>CHARACTER SET</b>
+ *<p>
+ *   Structured Property Configuration files are UTF-8. UTF-8 is the only
+ *   supported character set.
+ *<p>
+ * <b>KEY STRINGS</b>
+ *<p>
+ *   Key strings are used as unquoted string keys in HASHMAPS.
+ *<p>
+ *   Key strings may be a bare word alphanumeric string that must begin with 
+ *   a letter, and can contain '-' and '_'.
+ *<p>
+ *   Syntax examples:
+ *<pre>
+ *     something-name some5thing6 something_else
+ *</pre>
+ *   You can also use a QUOTED STRING as a key, in which case all characters
+ *   are valid. Be aware that using a QUOTED STRING with a '.' will cause the
+ *   convenience method getProperty(String) to fail; you will need to use
+ *   getProperty(...) and specify each component explicitly.
+ *<p>
+ * <b>UNQUOTED STRING</b>
+ *<p>
+ *   Unquoted strings start from the first valid non whitespace character and
+ *   end at the last. Unquoted strings may be continued onto the next line
+ *   using a backslash (\) character, in the same way as Property files.
+ *   Whitespace before the backslash is preserved, so that you can concatenate
+ *   multiple strings easily.
+ *<p>
+ *   When an unquoted string is continued, the whitespace leading up to the
+ *   first non whitespace character on the new line is ignored, at which pint
+ *   the string is then continued.
+ *<p>
+ *   Tab (\t) and newline (\r and \n) escape characters are supported.
+ *   The closed brace '}' is unsupported as a part of an unquoted string. If 
+ *   you need a closed brace, use a quoted string.
+ * <p>
+ *   EXAMPLE
+ *<pre>
+ *      some_key = This is an unquoted string. \
+ *                 This part of the string continues on.
+ *</pre>
+ *<p>   
+ * <b>QUOTED STRINGS</b>
+ *<p>
+ *   Quoted strings are started with a doublequote (") and ended with a
+ *   doublequote. There is no way to continue a quoted string; either use an
+ *   unquoted string, or let the line run on.
+ *<p>
+ *   Tab (\t) and newline (\r and \n) escape characters are supported.
+ *<p>
+ *   Quoted strings may be used in HASHMAPs and ARRAYLISTs as both keys and
+ *   values.
+ *<p>
+ *   EXAMPLE
+ *<pre> 
+ *      "This is a quoted string"
+ *</pre>
+ *<p>
+ * <b>BLOCKS</b>
+ *<p>
+ *   A block is designated with a '{' and ended with a '}'. If a block is used
+ *   as the value in a HASHMAP, you may omit the '='.
+ *<p>
+ *   A block can designate the beginning of either a HASHMAP or an ARRAYLIST. 
+ *   The type it is depends on the symbols after the open brace '{'. If the
+ *   two symbols are "STRING =", then it's a HASHMAP.
+ *<p>
+ *   A "STRING STRING ..." would designate an ARRAYLIST, where as a single
+ *   STRING would also designate an ARRAYLIST.
+ *<p>
+ *   It goes without saying that all items in a HASHMAP must be STRING = 
+ *   VALUE items, while all items in an ARRAYLIST must just be STRINGs.
+ *<p>
+ * <b>HASHMAP</b>
+ *<p>
+ *   HashMaps are used to provide a simple way to define key/value information.
+ *   HashMaps are converted to java.util.HashMap objects by the parser.
+ *<p>
+ *   Syntax:
+ *<pre>
+ *     { KEY = VALUE
+ *       KEY = VALUE 
+ *       KEY = VALUE 
+ *       ... }
+ *</pre>
+ *   Whitespace between the '=' and the key and value is not required, but 
+ *   should be included for readability. If you use quoted strings for the
+ *   values, then you only need whitespace between each entry.
+ *<p>
+ *   If you want to use unquoted strings, as they go until the end of line, you
+ *   will need each key/value pair on a new line.
+ *<p>
+ *   The entire configuration file has an implied { } around it, and is forced
+ *   to being a HashMap. Therefore, all entries in the root of the file is
+ *   required to be a KEY = VALUE entry.
+ *<p>
+ * <b>ARRAYLIST</b>
+ *<p>
+ *   ArrayLists are used to provide a way to define a list of values. ArrayLists
+ *   are converted to java.util.ArrayList objects by the parser.
+ *<p>
+ *   Syntax:
+ *<pre> 
+ *     { VALUE 
+ *       VALUE 
+ *       VALUE 
+ *       ... }
+ *</pre> 
+ *   As with HashMaps, using unquoted strings will require newlines between
+ *   entries, while using quoted strings do not.
+ *   <p>
+ *   For complete examples of the syntax, examine the example.conf file on github.
+ *<p> 
+ *
  * 
  * @author Nathan Ollerenshaw
  *
@@ -177,13 +331,59 @@ public class StructuredProperties {
     private int currentSymbolIndex                          = 0;
     private StructuredPropertiesSymbol currentSymbol        = null;
 
+    /**
+     * Parses the File as a Structured Properties configuration file.
+     * 
+     * @param configFile
+     * @throws Error
+     */
+    
+    public StructuredProperties (File configFile) throws Error {
+        InputStream in;
+        
+        try {
+            in = new FileInputStream(configFile);
+            this.lexer = new StructuredPropertiesLexer(in);
+            parse();
+        } catch (FileNotFoundException e) {
+            e.printStackTrace();
+        }
+    }
+
+    /**
+     * Parses the Reader as a Structured Properties configuration file.
+     * 
+     * @param in
+     * @throws Error
+     */
+    
+    public StructuredProperties(java.io.Reader in) throws Error {
+        this.lexer = new StructuredPropertiesLexer(in);
+        parse();
+    }
+
+    /**
+     * Parses the InputStream as a Structured Properties configuration file.
+     * 
+     * @param in
+     * @throws Error
+     */
+    
+    public StructuredProperties(java.io.InputStream in) throws Error {
+        this.lexer = new StructuredPropertiesLexer(in);
+        parse();
+    }
+    
     private static void usage(String [ ] args) {
     	String usageString = 
-    		"\nUsage: structuredproperties <fiename>\n" +
+    		"\nUsage: structuredproperties <fiename> [<key>]\n" +
     		"\n" +
     		"This program will parse a Structured Properties Configuration file\n" +
     		"and then perform a toString() on the root HashMap, outputting the\n" +
-    		"parsed configuration to stdout.\n";
+    		"parsed configuration to stdout.\n" +
+    		"\n" +
+    		"Optionally if you provide a key path, it will instead attempt to\n" +
+    		"dump the associated configuration item.";
     	
     	System.out.println(usageString);
     }
@@ -209,56 +409,109 @@ public class StructuredProperties {
         
         File f = new File(args[0]);
        
-        StructuredProperties.setDebugging(true);
-        
+        StructuredProperties.setDebugging(false);
         StructuredProperties c = new StructuredProperties(f);
-        
-        System.out.println("Completed parse.");
 
-        System.out.println("Parsed map:\n");
-        
-        for (String key : c.getRoot().keySet()) {
-        	System.out.println(key + " = " + c.getRoot().get(key));
+        switch (args.length) {
+        case 1:
+            for (String key : c.getRoot().keySet()) {
+            	System.out.println(key + " = " + c.getRoot().get(key));
+            }
+            break;
+        case 2:
+        	System.out.printf("%s = %s\n", args[1], c.getProperty(args[1], "NOT FOUND"));
         }
         
         System.exit(0);
     }
 
     /**
-     * Returns a given property at the path indicated by the string Key.
-     * 
+     * Returns a given property at the path indicated by the string key.
+     * <p>
      * Key is a path to a hashMap entry. If you want to get a specific
      * entry in an a array, get the ArrayList itself first.
-     * 
+     * <p>
+     * example:
+     * <p>
+     * <pre>
+     * c.getProperty("default.options.server.ip-address", "12.0.0.1");
+     * </pre>
+     * <p>
      * @param key
      * @param defaultValue
-     * @return
+     * @return HashMap, ArrayList, String
      */
     
-    public Object getProperty(String key, Object defaultValue) {
-    	Object o = null;
-    	
-    	return o;
+    public Object getProperty(String defaultValue, String key) {
+    	String args[] = key.split("\\.");
+
+    	return getProperty(defaultValue, args);
     }
     
-    public StructuredProperties (File configFile) throws Error {
-        InputStream in;
-        
-        try {
-            in = new FileInputStream(configFile);
-            this.lexer = new StructuredPropertiesLexer(in);
-            parse();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        }
-    }
+    /**
+     * Extracts a given object/string at a path that is provided as separate
+     * arguments to the method. This is the only way to get at a configuration
+     * object if you've decided that you want to use "." in a quoted string
+     * key.
+     * <p>
+     * example:
+     * <p>
+     * <pre>
+     * c.getProperty("default", "options", "server", "ip-address");
+     * </pre>
+     * 
+     * @param defaultValue
+     * @param keyparts
+     * @return HashMap, ArrayList, String
+     */
+    
+    public Object getProperty(String defaultValue, String... keyparts) {
+    	int i = 0;
+    	boolean found = true;
+    	Object def = defaultValue;
+    	
+    	if (keyparts.length == 1)
+    		return root.get(keyparts[0]);
+    	
+    	if (keyparts.length == 0)
+    		return null;
 
-    public StructuredProperties(java.io.Reader in) throws Error {
-        this.lexer = new StructuredPropertiesLexer(in);
+    	HashMap<?, ?> hmap = root;
+ 	
+    	for (i = 0; i < keyparts.length - 1; i++) {
+    		if (hmap.get(keyparts[i]) instanceof HashMap<?, ?>)
+    			hmap = (HashMap<?, ?>) hmap.get(keyparts[i]);
+    		else
+    			found = false;
+    	}
+    	if (found)
+    		def = hmap.get(keyparts[keyparts.length - 1]);
+    	
+    	return def;
+    }
+   
+    /**
+     * This method (as well as the constructors and the other load methods) loads
+     * and parses a Structured Properties Configuration file.
+ 	 *
+     * @param in
+     * @throws Error
+     */
+
+    public void load(java.io.Reader reader) {
+        this.lexer = new StructuredPropertiesLexer(reader);
         parse();
-    }
 
-    public StructuredProperties(java.io.InputStream in) throws Error {
+    }
+    
+    /**
+     * Please see load(java.io.Reader reader);
+     * 
+     * @param in
+     * @throws Error
+     */
+
+    public void load(java.io.InputStream in) throws Error {
         this.lexer = new StructuredPropertiesLexer(in);
         parse();
     }
