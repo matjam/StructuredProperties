@@ -1,3 +1,30 @@
-StructuredProperties is a class designed around the same general
+StructuredProperties Configuration Parser
+
+StructuredProperties is a parser designed around the same general
 style as the java Properties class, intended to provide a simple
 configuration file format for Java programs.
+
+For a definition of the syntax and for example usage, please look
+at the 'example.conf' file.
+
+To build StructuredProperties, you will need a recent JDK and the
+JFlex tool from http://jflex.de/ installed in your system path as
+"jflex", along with Apache Ant for building.
+
+No documentation for the API is ready yet, however JavaDoc
+documents are on the way. The basic usage is simple, however, just
+create yourself a new File object to represent your configuration
+file, and pass it to the StructuredProperties constructor. use
+StructuredProperties.getRoot() to get the root hashmap, at which
+point you can read entries as you normally would.
+
+The API will eventually provide a getEntry method which will allow
+you to specify the path to an item using "root.subpart.subpart.item"
+but that is currently not implemented.
+
+Example:
+
+    File f = new File(args[0]);
+    StructuredProperties c = new StructuredProperties(f);
+    System.out.println(c.getRoot().toString());
+
