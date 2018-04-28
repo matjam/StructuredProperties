@@ -1,6 +1,6 @@
 /* File: StructuredProperties.java
  * 
- *    Copyright 2011 Nathan Ollerenshaw <chrome@stupendous.net>
+ *    Copyright 2018 Nathan Ollerenshaw <chrome@stupendous.net>
  * 
  *    Licensed under the Apache License, Version 2.0 (the "License");
  *    you may not use this file except in compliance with the License.
