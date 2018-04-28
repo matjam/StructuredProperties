@@ -98,3 +98,18 @@ The core goals of StructuredProperties is to be
 
 Note that one of the core goals is not "to be able to represent every possible data type in existence". This is because there are many languages out there already that do a far better job at doing that. My suggestion is that if you have a requirement for a configuration file that stores some exotic data, that you store the exotic data in XML or JSON files with the rest of your configuration in a Structured Properties configuration file.
 
+# License
+
+Copyright 2018 Nathan Ollerenshaw <chrome@stupendous.net>
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
