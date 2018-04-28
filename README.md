@@ -1,3 +1,5 @@
+# About
+
 StructuredProperties Configuration File Format and Parser
 
 StructuredProperties is a parser designed around the same general
@@ -24,22 +26,31 @@ normally would.
 
 Example:
 
-    File f = new File(args[0]);
-    StructuredProperties c = new StructuredProperties(f);
-    System.out.println(c.getRoot().toString());
-
+```java
+File f = new File(args[0]);
+StructuredProperties c = new StructuredProperties(f);
+System.out.println(c.getRoot().toString());
+```
 Alternatively, you can use the getProperty(String default, String path)
 method, which will get a property at a given path, separated by '.'.
 
-    String v = getProperty("UNSET", "options.server-ip");
+```java
+String v = getProperty("UNSET", "options.server-ip");
+```
 
 This of course relies on you not using period in the key of any of
 your HashMaps, if that is the case, you can use the other form of
 getProperty():
 
-    String v = getProperty("UNSET", "options", "server.ip");
+```java
+String v = getProperty("UNSET", "options", "server.ip");
+```
 
 Please note that I'm not a Java programmer by trade; I've spent more time
 with C by now than anything else, so if any part of the implementation
 is not correct or needs work, I'd be happy to take any pull requests
 that fix them.
+
+# Why?
+
+Because.
